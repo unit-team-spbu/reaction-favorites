@@ -1,5 +1,5 @@
 from nameko.web.handlers import http
-from nameko.rpc import rpc
+from nameko.rpc import rpc, RpcProxy
 from nameko.events import EventDispatcher
 from nameko_mongodb import MongoDatabase
 from werkzeug.wrappers import Request, Response
@@ -12,6 +12,7 @@ class Favorites:
     name = "favorites"
 
     db = MongoDatabase()
+    logger_rpc = RpcProxy('logger')
     dispatch = EventDispatcher()
 
     # Logic
@@ -105,6 +106,8 @@ class Favorites:
         '''
         fav_data should be [user_id, event_id] 
         '''
+        self.logger_rpc.log(self.name, self.new_fav.__name__, fav_data, "Info", "Saving favorite")
+        
         is_new_info = self._new_fav(fav_data)
         if is_new_info:
             self.dispatch("fav", fav_data)
@@ -114,6 +117,8 @@ class Favorites:
         '''
         fav_data should be [user_id, event_id] 
         '''
+        self.logger_rpc.log(self.name, self.cancel_fav.__name__, fav_data, "Info", "Removing favorite")
+
         is_deleted_info = self._cancel_fav(fav_data)
         if is_deleted_info:
             self.dispatch("fav_cancel", fav_data)
