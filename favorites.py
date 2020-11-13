@@ -12,8 +12,20 @@ class Favorites:
     name = "favorites"
 
     db = MongoDatabase()
+    '''
+        name of collection: 'favs';
+        columns:
+                '_id' - id of the user
+                'favs_list' - the list:
+                    [event_1_id, ..., event_m_id]
+    '''
+
     logger_rpc = RpcProxy('logger')
+
     dispatch = EventDispatcher()
+    '''
+        calling for service 'uis' if new fav was made
+    '''
 
     # Logic
 
@@ -25,27 +37,27 @@ class Favorites:
         '''
         user_id, event_id = fav_data
         collection = self.db["favs"]
-        # here we have a table | user_id | [event_1_id, ..., event_n_id] |
+
         current_favs_list = collection.find_one(
             {"_id": user_id},
-            {"_id": 0, "favs_list": 1}
-        )
+            {"favs_list": 1}
+        )  # check whether this user is presented in db
 
         if current_favs_list:
-            '''
-            check whether this event is presented in current list
-            if so, change nothing, else add event_id in the list
-            '''
+            # this user is presented
             current_favs_list = current_favs_list["favs_list"]
             if event_id not in current_favs_list:
+                # add event_id in the list
                 current_favs_list.append(event_id)
                 collection.update_one(
                     {'_id': user_id},
                     {'$set': {"favs_list": current_favs_list}}
                 )
                 return True
+            # change nothing
             return False
         else:
+            # this is the first fav
             collection.insert_one(
                 {"_id": user_id, "favs_list": [event_id]}
             )
@@ -59,11 +71,10 @@ class Favorites:
         '''
         user_id, event_id = fav_data
         collection = self.db["favs"]
-        # here we have a table | user_id | [event_1_id, ..., event_n_id] |
         try:
             current_favs_list = collection.find_one(
                 {"_id": user_id},
-                {"_id": 0, "favs_list": 1}
+                {"favs_list": 1}
             )["favs_list"]
         except Exception:
             print(Exception)
@@ -80,6 +91,7 @@ class Favorites:
                 )
             else:
                 '''
+                it was the last fav
                 delete all record in db 
                 '''
                 collection.delete_one(
@@ -92,7 +104,7 @@ class Favorites:
         collection = self.db["favs"]
         favs = collection.find_one(
             {"_id": user_id},
-            {"_id": 0, "favs_list": 1}
+            {"favs_list": 1}
         )
         if favs:
             return favs["favs_list"]
@@ -104,10 +116,11 @@ class Favorites:
     @rpc
     def new_fav(self, fav_data):
         '''
-        fav_data should be [user_id, event_id] 
+            Args: fav_data - [user_id, event_id] 
+            dispatch to the uis - [user_id, event_id] 
         '''
-        self.logger_rpc.log(self.name, self.new_fav.__name__, fav_data, "Info", "Saving favorite")
-        
+        self.logger_rpc.log(self.name, self.new_fav.__name__,
+                            fav_data, "Info", "Saving favorite")
         is_new_info = self._new_fav(fav_data)
         if is_new_info:
             self.dispatch("fav", fav_data)
@@ -115,10 +128,11 @@ class Favorites:
     @rpc
     def cancel_fav(self, fav_data):
         '''
-        fav_data should be [user_id, event_id] 
+            Args: fav_data - [user_id, event_id] 
+            dispatch to the uis - [user_id, event_id] 
         '''
-        self.logger_rpc.log(self.name, self.cancel_fav.__name__, fav_data, "Info", "Removing favorite")
-
+        self.logger_rpc.log(self.name, self.cancel_fav.__name__,
+                            fav_data, "Info", "Removing favorite")
         is_deleted_info = self._cancel_fav(fav_data)
         if is_deleted_info:
             self.dispatch("fav_cancel", fav_data)
@@ -127,10 +141,18 @@ class Favorites:
 
     @rpc
     def get_favs_by_id(self, user_id):
+        '''
+            Args: user_id
+            Returns: [event_1_id, ..., event_n_id]
+        '''
         return self._get_favs(user_id)
-    
+
     @rpc
     def is_event_faved(self, user_id, event_id):
+        '''
+            Args: user_id, event_id
+            Returns: bool
+        '''
         favs = self._get_favs(user_id)
         if event_id in favs:
             return True
@@ -138,6 +160,12 @@ class Favorites:
 
     @http("POST", "/new_fav")
     def new_fav_http(self, request: Request):
+        '''
+            POST http://localhost:8000/new_fav HTTP/1.1
+            Content-Type: application/json
+
+            [user_id, event_id]
+        '''
         content = request.get_data(as_text=True)
         fav_data = json.loads(content)
         is_new_info = self._new_fav(fav_data)
@@ -145,13 +173,14 @@ class Favorites:
             self.dispatch("fav", fav_data)
         return Response(status=201)
 
-        # POST http://localhost:8000/new_fav HTTP/1.1
-        # Content-Type: application/json
-        #
-        # [user_id, event_id]
-
     @http("POST", "/cancel_fav")
     def cancel_fav_http(self, request: Request):
+        '''
+            POST http://localhost:8000/cancel_fav HTTP/1.1
+            Content-Type: application/json
+
+            [user_id, event_id]
+        '''
         content = request.get_data(as_text=True)
         fav_data = json.loads(content)
         is_deleted_info = self._cancel_fav(fav_data)
@@ -163,18 +192,21 @@ class Favorites:
         '''
         return Response(status=404)
 
-        # POST http://localhost:8000/cancel_fav HTTP/1.1
-        # Content-Type: application/json
-        #
-        # [user_id, event_id]
-
     @http("GET", "/get_favs/<id>")
     def get_favs_by_id_http(self, request: Request, id):
+        '''
+            POST http://localhost:8000/get_favs/<id> HTTP/1.1
+            Content-Type: application/json
+        '''
         favs = self._get_favs(id)
         return json.dumps(favs, ensure_ascii=False)
-    
+
     @http("GET", "/is_faved/<user_id>/<event_id>")
     def is_event_faved_http(self, request: Request, user_id, event_id):
+        '''
+            GET http://localhost:8000/is_faved/<user_id>/<event_id> HTTP/1.1
+            Content-Type: application/json
+        '''
         favs = self._get_favs(user_id)
         if event_id in favs:
             return json.dumps(True, ensure_ascii=False)
