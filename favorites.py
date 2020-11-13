@@ -195,7 +195,7 @@ class Favorites:
     @http("GET", "/get_favs/<id>")
     def get_favs_by_id_http(self, request: Request, id):
         '''
-            POST http://localhost:8000/get_favs/<id> HTTP/1.1
+            GET http://localhost:8000/get_favs/<id> HTTP/1.1
             Content-Type: application/json
         '''
         favs = self._get_favs(id)
