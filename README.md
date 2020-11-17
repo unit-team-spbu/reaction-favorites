@@ -1,4 +1,4 @@
-# Сервис лайков
+# Сервис избранных мероприятий
 
 Данный документ содержит описание работы и информацию о развертке микросервиса, предназначенного для хранения информации о мероприятиях, добавленных пользователем в избранное и отправляющего информацию о добавлениях в сервис интересов пользователей.
 
@@ -20,7 +20,7 @@
 
 ### RPC
 
-Новый лайк:
+Добавление в избранное:
 
 ```bat
 n.rpc.favorites.new_fav(fav_data)
@@ -30,7 +30,7 @@ Returns: nothing
 Dispatch to the `uis`: [user_id, event_id]
 ```
 
-Отмена лайка:
+Исключение из избранного:
 
 ```bat
 n.rpc.favorites.cancel_fav(fav_data)
@@ -40,7 +40,7 @@ Returns: nothing
 Dispatch to the `uis`: [user_id, event_id]
 ```
 
-Получить список ид мероприятий, которые понравились пользователю:
+Получить список ид мероприятий, которые пользователь добавил в избранное:
 
 ```bat
 n.rpc.favorites.get_favs_by_id(user_id)
@@ -49,7 +49,7 @@ Args: user_id
 Returns: [event_1_id, ..., event_n_id]
 ```
 
-Узнать, понравилось ли пользователю данное мероприятие:
+Узнать, добавил ли пользователь данное мероприятие в избранное:
 
 ```bat
 n.rpc.favorites.is_event_faved(user_id, event_id)
@@ -60,7 +60,7 @@ Returns: True is event is faved, False otherwise
 
 ### HTTP
 
-Новый лайк
+Добавление в избранное:
 
 ```rst
 POST http://localhost:8000/new_fav HTTP/1.1
@@ -69,7 +69,7 @@ Content-Type: application/json
 [user_id, event_id]
 ```
 
-Отмена лайка:
+Исключение из избранного:
 
 ```rst
 POST http://localhost:8000/cancel_fav HTTP/1.1
@@ -78,18 +78,16 @@ Content-Type: application/json
 [user_id, event_id]
 ```
 
-Получить список ид мероприятий, которые понравились пользователю:
+Получить список ид мероприятий, которые пользователь добавил в избранное:
 
 ```rst
 GET http://localhost:8000/get_favs/<id> HTTP/1.1
-Content-Type: application/json
 ```
 
-Узнать, понравилось ли пользователю данное мероприятие:
+Узнать, добавил ли пользователь данное мероприятие в избранное:
 
 ```rst
 GET http://localhost:8000/is_faved/<user_id>/<event_id> HTTP/1.1
-Content-Type: application/json
 ```
 
 ## Развертывание и запуск
